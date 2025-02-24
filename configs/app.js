@@ -1,10 +1,6 @@
-//Levantar servidor express (HTTP)
-
-//Modular | + efectiva + legible | trabaja en funciones
-
 'use strict'
 
-//ECModules | ESModules
+
 import express from 'express' //Servidor HTTP
 import morgan from 'morgan' //Logs
 import helmet from 'helmet' //Seguridad para HTTP
@@ -12,28 +8,33 @@ import cors from 'cors' //Acceso al API
 //Importamos las rutas de las entidades a trabajar.
 import userRoutes from "../src/user/user.routes.js"
 import authRoutes from '../src/auth/auth.routes.js'
-//import categoryRoutes from '../src/categorias/category.routes.js'
-//El dotenv
+import categoryRoutes from "../src/category/category.routes.js"
+import commentRoutes from "../src/comment/comment.routes.js"
+import postRoutes from "../src/post/post.routes.js"
+
+
 import dotenv from 'dotenv';
 import { limiter } from '../middlewares/rate.limit.js'
-dotenv.config(); // <-- Asegura que .env se cargue correctamente
+dotenv.config(); 
 
-//Configuraciones de express metidas en una función
+
 const configs = (app)=>{
     app.use(express.json()) //Aceptar y enviar datos en JSON
-    app.use(express.urlencoded({extended: false})) //No encriptar la URL
-    app.use(cors()) //Antes que los demás que vienen bajo este. (Políticas de seguridad)
-    app.use(helmet()) //Seguridad de express (HTTP)
-    app.use(morgan('dev')) //Gestionador de Logs (dev: )
+    app.use(express.urlencoded({extended: false})) 
+    app.use(cors()) 
+    app.use(helmet()) 
+    app.use(morgan('dev')) 
     app.use(limiter)
 }
 
-//Cuando tengamos rutas.
 //  Carga de rutas
 const routes = (app) => {
-    app.use('/api/users', userRoutes); // Rutas de usuarios
     app.use('/api/auth',authRoutes);
-    //app.use('/api/category', categoryRoutes);
+    app.use('/api/users', userRoutes); 
+    app.use('/api/category',categoryRoutes);
+    app.use('/api/comment',commentRoutes);
+    app.use('/api/post',postRoutes);
+   
 };
 
 //Ejecutamos el servidor

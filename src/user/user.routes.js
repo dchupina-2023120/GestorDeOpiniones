@@ -1,27 +1,43 @@
-import { Router } from "express";
+import { Router } from "express"
+import {
+    updateUser,
+    updateUserPassword,
+    deleteUser,
+} from "../user/user.controller.js"
+
 import { 
-        deleteUser, 
-        update
-} from "./user.controller.js";
-import { UserValidator } from "../../middlewares/validators.js";
-import { validateJwt } from "../../middlewares/validate.jwt.js";
+    updateUserValidators, 
+    updatePasswordValidator 
+} from "../../middlewares/validators.js"
+
+import { validateJwt } from "../../middlewares/validate.jwt.js"
 
 const api = Router()
 
-api.get("/profile", authenticate, getProfile); // Obtener perfil del usuario autenticado
-
-
-api.put("/:id", 
+api.put(
+    "/:id",
         [
-                validateJwt, 
-        ], 
-        update
-); 
+            validateJwt,
+            updateUserValidators
+        ],
+    updateUser
+)
 
+api.put(
+    "/updPassword/:id",
+        [
+            validateJwt,
+            updatePasswordValidator
+        ],
+    updateUserPassword
+)
 
-
-api.delete("/:id", deleteUser); 
-
-
+api.put(
+    "/delete/:id",
+        [
+            validateJwt
+        ],
+    deleteUser
+)
 
 export default api

@@ -1,67 +1,106 @@
-//Gestionar lógica de autenticación
-import User from '../user/user.model.js'
-import { encrypt, checkPassword } from '../../utils/encrypt.js'
+import { hash, verify } from 'argon2'
 import { generateJwt } from '../../utils/jwt.js'
+import User from '../user/user.model.js'
 
-
-
-//Registrar
-export const register = async(req, res)=>{
+export const register = async (req, res) => {
     try {
-        let data = req.body
-        let user = new User(data)
-        user.password = await encrypt(user.password)
-        user.role = 'CLIENT'
-        await user.save()
-
-        return res.send({message: `Registrado con exito , se puede registrar con nombre de usuario: ${user.username}`})
-    } catch (err) {
-        console.error(err)
-        return res.status(500).send({message: 'Error general con el registro del usuario', err})
-    }
-}
-
-//Login
-export const login = async(req, res)=>{
-    try {
-        
-        let {userLoggin, password} = req.body
-        
-        let user = await User.findOne(
+        let data = req.body;
+        const existingUser = await User.findOne(
             {
                 $or: [
-                        {email: userLoggin},
-                        {username: userLoggin}
+                    { email: data.email },
+                    { username: data.username }
                 ]
             }
-        ) 
-        
-        
-        if(user && await checkPassword(user.password, password)){
-            let loggedUser = {
-                uid: user._id,
-                username: user.username,
-                name: user.name,
-                role: user.role
-            }
-            let token = await generateJwt(loggedUser)
-            return res.send(
+        )
+        if (existingUser) {
+            return res.status(400).send(
                 {
-                    message: `Bienvenido ${user.name}`,
-                    loggedUser, 
-                    token
-                })
-        } 
-        //Responder al usuario
-        return res.status(400).send({message: 'Credenciales no validas '})
+                    message: 'Email or Username is already taken'
+                }
+            )
+        }
+        data.password = await hash(data.password);
+        data.role = 'CLIENT';
+        let user = new User(data);
+        await user.save();
+        return res.status(201).send(
+            {
+                message: `Registered successfully, you can log in with username: ${user.username}`,
+                user
+            }
+        )
     } catch (err) {
-        console.error(err)
-        return res.status(500).send({message: 'Error general con la funcion de login ', err})
+        console.error(err);
+        return res.status(500).send(
+            {
+                message: 'General error with user registration',
+                err
+            }
+        )
+    }
+};
+
+
+export const login = async (req, res) => {
+    try {
+        let { userLoggin, password } = req.body;
+
+        let user = await User.findOne({
+            $or: [{ email: userLoggin }, 
+                    { username: userLoggin }]
+        });
+
+        if (!user) {
+            return res.status(400).send(
+                { 
+                    message: 'Invalid credentials' 
+                }
+            )
+        }
+
+        const passwordMatch = await verify(user.password, password);
+        if (!passwordMatch) {
+            return res.status(400).send(
+                { 
+                    message: 'Invalid credentials' 
+                }
+            )
+        }
+
+        // Generar el token
+        let loggedUser = {
+            uid: user._id,
+            username: user.username,
+            name: user.name,
+            role: user.role
+        }
+
+        let token = await generateJwt(loggedUser);
+
+        return res.send({
+            message: `Welcome ${user.name}`,
+            loggedUser,
+            token
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send(
+            { 
+                message: 'General error with login function', 
+                err 
+            }
+        )
     }
 }
 
 
-export const test = (req, res)=>{
-    console.log('La prueba se esta ejecutando ')
-    return res.send({message: 'La prueba se esta ejecutando'})
+export const test = (req, res) => {
+    console.log('Test is running')
+    res.send(
+        {
+            message: 'Test is running'
+        }
+    )
 }
+

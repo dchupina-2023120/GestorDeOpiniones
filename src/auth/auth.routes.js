@@ -1,25 +1,32 @@
-//Rutas de autenticación
 import { Router } from "express";
-import { 
+import {
+    register,
     login,
-    register, 
-    test 
-} from "./auth.controller.js";
-import { validateJwt } from "../../middlewares/validate.jwt.js";
-import { UserValidator } from "../../middlewares/validators.js";
+    test
+} from "./auth.controller.js"
+import { validateJwt } from "../../middlewares/validate.jwt.js"
+import { registerValidator } from "../../middlewares/validators.js"
+
+
 
 const api = Router()
 
-// Rutas públicas (No requieren autenticación)
-                      //Middlewares
-api.post('/register', 
+api.post('/register',
     [
-        UserValidator,
-    ], register)
-api.post('/login', login)
+        registerValidator
+    ],
+    register
+)
 
+api.post('/login',
+    login
+)
 
-api.get('/test', validateJwt, test)
+api.get('/test',
+    [
+        validateJwt
+    ],
+    test
+)
 
-// Exportamos rutas
 export default api

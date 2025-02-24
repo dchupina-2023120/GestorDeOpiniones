@@ -1,33 +1,53 @@
 import { body } from "express-validator";
-import { validateErrors, validateErrorsWithoutFiles } from "../middlewares/validated.errors.js";
-import {existEmail, existUsername } from "../utils/db.validators.js";
+import { validateErrors } from "../middlewares/validated.errors.js"
+import { existEmail, existUsername } from "../utils/db.validators.js";
 
-// export const courseValidator=[
-//     body('name','Name cannot not be empty').notEmpty().toLowerCase().custom(existCourse),
-//     body('hour','Hour cannot not be empty').notEmpty(),
-//     validateErrors
-// ]
 
-export const UserValidator=[
-    body('name',`Name can't not be empty`)
-    .notEmpty(),
-    
-    body('surname',`Surname can't not be empty`)
-    .notEmpty(),
-    
-    body('email',`Email can't not be empty`)
-    .notEmpty()
-    .isEmail()
-    .custom(existEmail),
+export const registerValidator = [
+    body('name', 'Name cannot be empty')
+        .notEmpty(),
+    body('surname', 'Surname cannot be empty')
+        .notEmpty(),
+    body('username', 'Username cannot be empty')
+        .notEmpty()
+        .toLowerCase(),
+    body('email', 'Email cannot be empty')
+        .notEmpty()
+        .isEmail()
+        .custom(existEmail),
+    body('username')
+        .notEmpty()
+        .toLowerCase()
+        .custom(existUsername),
+    body('password', 'Password cannot be empty')
+        .notEmpty()
+        .isStrongPassword()
+        .withMessage('Password must be strong')
+        .isLength({min: 8})
+        .withMessage('Password need at least 8 characters'),
+    validateErrors
+]//Es un arreglo de middlewares || {} es un bloque de codigo
 
-    body('username',`Username can't not be empty`)
-    .notEmpty().
-    toLowerCase().
-    custom(existUsername),
-    
-    body('password',`Password can't not be empty`)
-    .notEmpty()
-    .isStrongPassword()
-    .withMessage('Password must be most strong')
-    .isLength({min:8}),
+export const updateUserValidators = [
+    body('username')
+        .optional()
+        .notEmpty()
+        .toLowerCase()
+        .custom((username, { req }) => existUsername(username, req.user)),
+    body('email')
+        .optional()
+        .notEmpty()
+        .isEmail()
+        .custom((email, { req }) => existEmail(email, req.user)),
+    validateErrors
 ]
+
+// Validaciones para actualizar contraseña
+export const updatePasswordValidator = [
+    body('currentPassword', 'Current password is required').notEmpty(),
+    body('newPassword', 'New password is required')
+        .notEmpty()
+        .isStrongPassword().withMessage('New password must be strong')
+        .isLength({ min: 8 }).withMessage('New password needs at least 8 characters'),
+    validateErrors
+];

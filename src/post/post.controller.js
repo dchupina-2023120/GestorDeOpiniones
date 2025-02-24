@@ -1,104 +1,81 @@
-import Post from "../models/post.model.js";
-import Category from "../models/category.model.js";
+import Publicacion from "../post/post.model.js";
+import mongoose from "mongoose";
 
-// Crear una nueva publicación (Cualquier usuario autenticado puede crear una)
+
+// Crear una nueva publicación
 export const createPost = async (req, res) => {
     try {
-        const { title, category, content } = req.body;
+        const { titulo, categoria, contenido, user } = req.body;
 
-        // Verificar que la categoría existe
-        const categoryExists = await Category.findById(category);
-        if (!categoryExists) return res.status(404).json({ message: "Categoría no encontrada" });
+        if (!titulo || !categoria || !contenido || !user) {
+            return res.status(400).json({ message: "Todos los campos son obligatorios" });
+        }
 
-        const newPost = new Post({
-            title,
-            category,
-            content,
-            user: req.user.id  // Se obtiene del token de autenticación
-        });
-
+        const newPost = new Publicacion({ titulo, categoria, contenido, user });
         await newPost.save();
+
         res.status(201).json({ message: "Publicación creada", post: newPost });
     } catch (err) {
-        res.status(500).json({ message: "Error al crear la publicación", err });
+        console.error("Error al crear la publicación:", err);
+        res.status(500).json({ message: "Error al crear la publicación" });
     }
 };
 
-// Obtener todas las publicaciones
-export const getAllPosts = async (req, res) => {
-    try {
-        const posts = await Post.find()
-            .populate("user", "username") // Mostrar el nombre del usuario que publicó
-            .populate("category", "name") // Mostrar el nombre de la categoría
-            .sort({ createdAt: -1 }); // Ordenar por fecha (más reciente primero)
 
-        res.status(200).json(posts);
-    } catch (err) {
-        res.status(500).json({ message: "Error al obtener publicaciones", err });
-    }
-};
-
-// Obtener una publicación por ID
-export const getPostById = async (req, res) => {
-    try {
-        const post = await Post.findById(req.params.id)
-            .populate("user", "username")
-            .populate("category", "name");
-
-        if (!post) return res.status(404).json({ message: "Publicación no encontrada" });
-
-        res.status(200).json(post);
-    } catch (err) {
-        res.status(500).json({ message: "Error al obtener la publicación", err });
-    }
-};
-
-// Editar una publicación (Solo el autor puede editar)
 export const updatePost = async (req, res) => {
     try {
-        const post = await Post.findById(req.params.id);
+        let { id } = req.params; // ID de la publicación
+        let datos = req.body; // Datos nuevos de la publicación
 
-        if (!post) return res.status(404).json({ message: "Publicación no encontrada" });
+        let publicacionActualizada = await Publicacion.findOneAndUpdate(
+            { _id: id }, 
+            datos, 
+            { new: true } // Devuelve la publicación actualizada
+        );
 
-        // Verificar que el usuario es el autor
-        if (post.user.toString() !== req.user.id) {
-            return res.status(403).json({ message: "No puedes editar esta publicación" });
+        if (!publicacionActualizada) {
+            return res.status(404).send({ message: 'No se pudo actualizar la publicación' });
         }
 
-        const { title, category, content } = req.body;
-
-        // Si se cambia la categoría, verificar que existe
-        if (category) {
-            const categoryExists = await Category.findById(category);
-            if (!categoryExists) return res.status(404).json({ message: "Categoría no encontrada" });
-        }
-
-        post.title = title || post.title;
-        post.category = category || post.category;
-        post.content = content || post.content;
-
-        await post.save();
-        res.status(200).json({ message: "Publicación actualizada", post });
+        return res.send({ message: 'Publicación actualizada', publicacionActualizada });
     } catch (err) {
-        res.status(500).json({ message: "Error al actualizar publicación", err });
+        console.error(err);
+        return res.status(500).send({ message: 'Error al actualizar la publicación' });
     }
 };
 
-// Eliminar una publicación (Solo el autor puede eliminar)
+
+
+
+
 export const deletePost = async (req, res) => {
     try {
-        const post = await Post.findById(req.params.id);
+        const { id } = req.params;
+        //const usuarioId = req.user?.id; // Se obtiene el usuario autenticado (JWT)
 
-        if (!post) return res.status(404).json({ message: "Publicación no encontrada" });
-
-        // Verificar que el usuario es el autor
-        if (post.user.toString() !== req.user.id) {
-            return res.status(403).json({ message: "No puedes eliminar esta publicación" });
+        // Verificar si el ID es válido
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "ID de publicación no válido" });
         }
 
-        await post.deleteOne();
-        res.status(200).json({ message: "Publicación eliminada" });
+        // Buscar la publicación
+        const post = await Publicacion.findById(id);
+        if (!post) {
+            return res.status(404).json({ message: "Publicación no encontrada" });
+        }
+
+        // // Verificar si el usuario es el dueño de la publicación
+        // if (!post.usuario || post.usuario.toString() !== usuarioId) {
+        //     return res.status(403).json({ message: "No puedes eliminar esta publicación" });
+        // }
+
+        // Eliminar la publicación
+        await Publicacion.findByIdAndDelete(id);
+        return res.json({ message: "Publicación eliminada exitosamente" });
+
     } catch (err) {
-        res.status(500).json({ message: "Error al eliminar publicación", err });
+        console.error("Error al eliminar la publicación:", err);
+        return res.status(500).json({ message: "Error interno al eliminar la publicación" });
     }
 };
+

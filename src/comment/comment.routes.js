@@ -1,12 +1,35 @@
-import { Router } from "express";
-import { authenticate } from "../middlewares/auth.js";
-import { createComment, getCommentsByPost, updateComment, deleteComment } from "../controllers/comment.controller.js";
+import { Router } from "express"
+import { 
+    createComment, 
+    deleteComment,
+    updateComment
+} from "../comment/comment.controller.js"
+import { validateJwt } from "../../middlewares/validate.jwt.js"
 
-const router = Router();
 
-router.post("/", authenticate, createComment); // Solo usuarios autenticados pueden comentar
-router.get("/:postId", getCommentsByPost); // Obtener comentarios de una publicación
-router.put("/:id", authenticate, updateComment); // Solo el autor puede editar su comentario
-router.delete("/:id", authenticate, deleteComment); // Solo el autor puede eliminar su comentario
+const api = Router()
 
-export default router;
+api.post('/', 
+    [
+        validateJwt
+    ],
+    createComment
+)
+
+api.put(
+    '/:id', 
+    [
+        validateJwt
+    ], 
+    updateComment
+)
+
+api.delete(
+    '/:id', 
+    [
+        validateJwt
+    ], 
+    deleteComment
+)
+
+export default api

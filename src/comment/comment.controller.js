@@ -1,77 +1,80 @@
-import Comment from "../models/comment.model.js";
-import Post from "../models/post.model.js";
+import Comment from "../comment/comment.model.js";
+import Post from "../post/post.model.js";
+import User from "../user/user.model.js";
 
-// Crear un comentario (Cualquier usuario puede comentar)
+
+
+// Crear un nuevo comentario
 export const createComment = async (req, res) => {
     try {
-        const { postId, content } = req.body;
+        const { comentario, publicacion, user } = req.body;
 
-        // Verificar que la publicación existe
-        const postExists = await Post.findById(postId);
-        if (!postExists) return res.status(404).json({ message: "Publicación no encontrada" });
+        if (!comentario || !publicacion || !user) {
+            return res.status(400).json({ message: "Todos los campos son obligatorios" });
+        }
 
-        const newComment = new Comment({
-            content,
-            user: req.user.id,  // Se obtiene del token
-            post: postId
-        });
-
+        const newComment = new Comment({ comentario, publicacion, user });
         await newComment.save();
-        res.status(201).json({ message: "Comentario agregado", comment: newComment });
+
+        res.status(201).json({ message: "Comentario creado", comment: newComment });
     } catch (err) {
-        res.status(500).json({ message: "Error al agregar comentario", err });
+        console.error("Error al crear el comentario:", err);
+        res.status(500).json({ message: "Error al crear el comentario" });
     }
 };
 
-// Obtener comentarios de una publicación
-export const getCommentsByPost = async (req, res) => {
-    try {
-        const comments = await Comment.find({ post: req.params.postId })
-            .populate("user", "username") // Para mostrar el nombre del usuario
-            .sort({ createdAt: -1 }); // Ordenados por fecha, el más reciente primero
 
-        res.status(200).json(comments);
-    } catch (err) {
-        res.status(500).json({ message: "Error al obtener comentarios", err });
-    }
-};
 
-// Editar un comentario (Solo el autor puede editar)
+
+// Actualizar un comentario
 export const updateComment = async (req, res) => {
     try {
-        const comment = await Comment.findById(req.params.id);
+        const { id } = req.params;
+        const { comentario } = req.body;
+       // const { id: Uid } = req.user;
 
+        // Verificar si el comentario existe
+        const comment = await Comment.findById(id);
         if (!comment) return res.status(404).json({ message: "Comentario no encontrado" });
 
-        // Validar que el usuario sea el autor del comentario
-        if (comment.user.toString() !== req.user.id) {
-            return res.status(403).json({ message: "No puedes editar este comentario" });
-        }
+        //  // Verificar que el usuario sea el autor del comentario
+        //  if (comment.user.toString() !== Uid) {
+        //      return res.status(403).json({ message: "No puedes editar un comentario que no te pertenece" });
+        //  }
 
-        comment.content = req.body.content; // Actualizar contenido
+        // Actualizar el comentario
+        comment.comentario = comentario;
         await comment.save();
 
-        res.status(200).json({ message: "Comentario actualizado", comment });
+        res.json({
+            message: "Comentario actualizado",
+            comment,
+        });
     } catch (err) {
-        res.status(500).json({ message: "Error al actualizar comentario", err });
+        console.error("Error al actualizar el comentario:", err);
+        res.status(500).json({ message: "Error al actualizar el comentario", err });
     }
 };
 
-// Eliminar un comentario (Solo el autor puede eliminar)
+// Eliminar un comentario
 export const deleteComment = async (req, res) => {
     try {
-        const comment = await Comment.findById(req.params.id);
+        const { id } = req.params;
+        const { id: userId } = req.user;
 
+        // Verificar si el comentario existe
+        const comment = await Comment.findById(id);
         if (!comment) return res.status(404).json({ message: "Comentario no encontrado" });
 
-        // Validar que el usuario sea el autor del comentario
-        if (comment.user.toString() !== req.user.id) {
-            return res.status(403).json({ message: "No puedes eliminar este comentario" });
-        }
+        // // Verificar que el usuario sea el autor del comentario
+        // if (comment.user.toString() !== userId) {
+        //     return res.status(403).json({ message: "No puedes eliminar un comentario que no te pertenece" });
+        // }
 
-        await comment.deleteOne();
-        res.status(200).json({ message: "Comentario eliminado" });
+
+        res.json({ message: "Comentario eliminado" });
     } catch (err) {
-        res.status(500).json({ message: "Error al eliminar comentario", err });
+        console.error("Error al eliminar el comentario:", err);
+        res.status(500).json({ message: "Error al eliminar el comentario", err });
     }
 };
